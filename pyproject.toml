@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "webiso"
+version = "0.1.0"
+description = "Extraction structurelle de pages HTML (méta / structure / contenu), visualisation par graphes NetworkX et test d'isomorphisme VF2."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Ruth" }]
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "networkx>=3.2",
+    "matplotlib>=3.8",
+    "streamlit>=1.30",
+    "pandas>=2.0",
+]
+
+[project.scripts]
+webiso-compare = "webiso.cli:main"
+webiso-app = "webiso.webapp:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

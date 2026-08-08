@@ -1,0 +1,3 @@
+[console_scripts]
+webiso-app = webiso.webapp:main
+webiso-compare = webiso.cli:main
