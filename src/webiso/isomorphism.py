@@ -81,11 +81,11 @@ def test_isomorphisme_complet(site1, site2):
     print(f"  Contenu  : {'✓' if iso_c else '✗'}")
     print("  " + "─" * 56)
     if iso_global:
-        print("  ✅  LES DEUX SITES SONT ISOMORPHES")
+        print("   LES DEUX SITES SONT ISOMORPHES")
         print("      Même méta, même structure, même contenu.")
     else:
         couches_ko = [c for c, r in resultats.items() if not r["iso"]]
-        print("  ❌  LES DEUX SITES NE SONT PAS ISOMORPHES")
+        print("   LES DEUX SITES NE SONT PAS ISOMORPHES")
         print(f"      Couche(s) non isomorphe(s) : {', '.join(couches_ko)}")
     print("═" * 60)
 
