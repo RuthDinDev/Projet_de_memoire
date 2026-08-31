@@ -19,11 +19,11 @@ COUCHES = [
     ("contenu", "G_contenu", "Contenu"),
 ]
 
-st.set_page_config(page_title="webiso — Isomorphisme structurel HTML", layout="wide")
+st.set_page_config(page_title="webiso : Isomorphisme structurel HTML", layout="wide")
 
 st.title("webiso")
 st.caption(
-    "Comparaison structurelle de deux sites web — extraction en 3 couches "
+    "Comparaison structurelle de deux sites web : extraction en 3 couches "
     "(méta · structure · contenu) → graphe formel NetworkX → test d'isomorphisme VF2"
 )
 
