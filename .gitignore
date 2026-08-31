@@ -7,3 +7,5 @@ env/
 .DS_Store
 *.png
 *.svg
+.claude/
+
