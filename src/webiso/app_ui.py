@@ -73,7 +73,7 @@ if "site1" in st.session_state and "site2" in st.session_state:
     for palette_key, graph_key, titre in COUCHES:
         iso, mapping, rapport = tester_isomorphisme(site1[graph_key], site2[graph_key], titre)
         resultats[palette_key] = iso
-        with st.expander(f"{'✅' if iso else '❌'} Couche {titre}", expanded=not iso):
+        with st.expander(f"{'Okay' if iso else 'Not'} Couche {titre}", expanded=not iso):
             st.code(rapport, language=None)
 
     iso_global = all(resultats.values())
