@@ -79,7 +79,7 @@ if "site1" in st.session_state and "site2" in st.session_state:
     iso_global = all(resultats.values())
     st.divider()
     if iso_global:
-        st.success("✅ Les deux sites sont ISOMORPHES — même méta, même structure, même contenu.")
+        st.success("Les deux sites sont ISOMORPHES — même méta, même structure, même contenu.")
     else:
         couches_ko = [titre for palette_key, _, titre in COUCHES if not resultats[palette_key]]
-        st.error(f"❌ Les deux sites ne sont PAS isomorphes. Couche(s) en échec : {', '.join(couches_ko)}")
+        st.error(f"Les deux sites ne sont PAS isomorphes. Couche(s) en échec : {', '.join(couches_ko)}")
