@@ -1,15 +1,40 @@
 # webiso
 
 Extraction structurelle de pages HTML en 3 couches (**métadonnées** · **structure** ·
-**contenu**), construction d'un graphe formel `G=(S,A)` par couche avec
-[NetworkX](https://networkx.org/), visualisation via NetworkX/Matplotlib, et test
-d'isomorphisme structurel (VF2) entre deux sites.
+**contenu**) et comparaison d'un site **vrai** (référence) et d'un site **faux**
+(candidat) — labels génériques, la comparaison reste symétrique entre deux URLs
+quelconques — à **deux niveaux** avec [NetworkX](https://networkx.org/) :
+
+- **Niveau 1 — structure complète** : **un seul graphe orienté, non segmenté,
+  par site**, portant sur *tout l'arbre DOM* (chaque balise du document est un
+  sommet, chaque arc une relation parent→enfant réelle — pas de filtrage par
+  couche ni par liste de balises). Test d'isomorphisme VF2
+  (`networkx.algorithms.isomorphism.DiGraphMatcher`).
+- **Niveau 2 — contenu des balises Méta et Contenu** : un graphe de
+  co-occurrence de mots non orienté par couche (sommets = mots, arcs =
+  co-occurrence dans une même phrase du contenu porté par les balises de cette
+  couche), pour les couches **Méta** et **Contenu** uniquement — la couche
+  Structure (div, nav, header...) n'a pas de contenu textuel qui lui soit
+  propre et en est exclue. Test d'isomorphisme VF2 sur graphe non orienté
+  (`networkx.algorithms.isomorphism.GraphMatcher`). Le "contenu" de chaque
+  couche réutilise les champs déjà extraits :
+  - Méta → texte des balises (title, description, mots-clés...)
+  - Contenu → texte visible (titres, paragraphes, liens, attributs alt...)
+
+  Deux pages différentes ont presque toujours un vocabulaire de taille
+  différente : un verdict « non isomorphe » au niveau 2 est donc attendu la
+  plupart du temps — c'est un test d'identité stricte du contenu, pas une
+  mesure de similarité approximative.
+
+Les deux niveaux sont rapportés séparément (pas de verdict combiné automatique) :
+« même structure ? » et « même contenu ? » sont deux questions distinctes.
 
 Package issu du notebook `struct_complet.ipynb` : la logique d'extraction est
-inchangée, le moteur SVG fait main a été remplacé par des `networkx.DiGraph` +
-un layout ressort (`networkx.spring_layout`, nœuds circulaires dont la taille suit
-le degré), et l'algorithme VF2 codé à la main a été remplacé par
-`networkx.algorithms.isomorphism.DiGraphMatcher`. Une interface web
+inchangée (toujours utilisée pour les tableaux d'affichage), le moteur SVG fait
+main a été remplacé par des `networkx.DiGraph`/`networkx.Graph` + un layout
+ressort (`networkx.spring_layout`, nœuds circulaires dont la taille suit le
+degré), et l'algorithme VF2 codé à la main a été remplacé par
+`networkx.algorithms.isomorphism`. Une interface web
 [Streamlit](https://streamlit.io/) est fournie comme frontend.
 
 ## Installation
@@ -51,9 +76,11 @@ session de terminal avant de lancer `webiso-app` ou `webiso-compare`. Ce dossier
 webiso-app
 ```
 
-Ouvre une page web (par défaut sur http://localhost:8501) avec deux champs d'URL,
-un bouton « Comparer », les tableaux d'extraction, les 6 graphes NetworkX (méta /
-structure / contenu × 2 sites) et le rapport d'isomorphisme VF2, couche par couche.
+Ouvre une page web (par défaut sur http://localhost:8501) avec un champ URL
+« vrai » et un champ URL « faux », un bouton « Comparer », les tableaux
+d'extraction, puis les deux niveaux de comparaison : Niveau 1 (1 graphe complet
+par site + verdict VF2) et Niveau 2 (graphes de mots Méta + Contenu par site +
+verdict VF2 par couche).
 
 Équivalent sans passer par la commande installée :
 
@@ -100,21 +127,32 @@ préfixés par `webiso/` :
 webiso-compare https://exemple1.com https://exemple2.com
 ```
 
-Génère les tableaux d'extraction, les graphes formels (console), 6 images PNG
-(3 couches × 2 sites) et le rapport d'isomorphisme final.
+```bash
+webiso-compare https://site-reference.com https://site-candidat.com
+```
+
+Génère les tableaux d'extraction, le graphe formel complet (console), 6 images
+PNG (niveau 1 : 1 graphe complet × 2 sites, niveau 2 : 2 couches de mots ×
+2 sites) et les deux rapports d'isomorphisme (structure, puis contenu).
 
 ## Utilisation programmatique
 
 ```python
-from webiso import analyser_site, dessiner_graphe, sauver_graphe, PALETTES, test_isomorphisme_complet
+from webiso import (
+    analyser_site, dessiner_graphe, dessiner_graphe_mots, sauver_graphe, PALETTE_COMPLETE,
+    test_isomorphisme_structure, test_isomorphisme_contenu,
+)
 
-site1 = analyser_site("https://exemple1.com")
-site2 = analyser_site("https://exemple2.com")
+vrai = analyser_site("https://site-reference.com")
+faux = analyser_site("https://site-candidat.com")
 
-fig = dessiner_graphe(site1["G_struct"], PALETTES["struct"], "Structure — site1")
-sauver_graphe(fig, "structure_site1.png")
+# Niveau 1 — structure complète (un seul graphe non segmenté)
+fig = dessiner_graphe(vrai["G_complet"], PALETTE_COMPLETE, "Structure — vrai")
+sauver_graphe(fig, "structure_vrai.png")
+iso_structure, mapping, rapport = test_isomorphisme_structure(vrai, faux)
 
-iso_global, resultats = test_isomorphisme_complet(site1, site2)
+# Niveau 2 — contenu des balises Méta et Contenu (graphes de mots)
+iso_contenu, resultats_contenu = test_isomorphisme_contenu(vrai, faux)
 ```
 
 Voir [`examples/comparer_deux_sites.py`](examples/comparer_deux_sites.py) pour un
@@ -125,11 +163,12 @@ exemple complet.
 | Module | Rôle |
 |---|---|
 | `webiso.fetch` | Validation d'URL et chargement HTTP |
-| `webiso.extraction` | Extraction des 3 couches (méta / structure / contenu) |
-| `webiso.graphs` | Construction du graphe formel `G=(S,A)` en `networkx.DiGraph` |
-| `webiso.viz` | Dessin des graphes (NetworkX + Matplotlib) |
-| `webiso.isomorphism` | Test d'isomorphisme VF2 via `networkx.algorithms.isomorphism` |
-| `webiso.pipeline` | Orchestration : URL → HTML → 3 graphes |
+| `webiso.extraction` | Extraction des 3 couches (méta / structure / contenu), pour les tableaux d'affichage |
+| `webiso.graphs` | Niveau 1 : graphe complet et non segmenté de tout l'arbre DOM (`networkx.DiGraph`) |
+| `webiso.textgraph` | Niveau 2 : graphe de co-occurrence de mots (`networkx.Graph`) pour les couches Méta et Contenu |
+| `webiso.viz` | Dessin des graphes (NetworkX + Matplotlib), niveau 1 et niveau 2 |
+| `webiso.isomorphism` | Tests d'isomorphisme VF2 — orienté (niveau 1) et non orienté (niveau 2) |
+| `webiso.pipeline` | Orchestration : URL → HTML → graphes niveau 1 + niveau 2 |
 | `webiso.cli` | Point d'entrée `webiso-compare` |
-| `webiso.app_ui` | Page Streamlit (frontend) |
+| `webiso.app_ui` | Page Streamlit (frontend), niveau 1 et niveau 2 |
 | `webiso.webapp` | Point d'entrée `webiso-app` (lance `streamlit run` sur `app_ui.py`) |

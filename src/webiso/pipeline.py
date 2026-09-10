@@ -1,4 +1,6 @@
-"""Pipeline complet : URL → HTML → 3 couches extraites → 3 graphes formels NetworkX."""
+"""Pipeline complet : URL → HTML → graphes NetworkX (niveau 1 : graphe complet
+et non segmenté de toutes les balises ; niveau 2 : graphes de mots pour le
+contenu des couches Méta et Contenu)."""
 
 from urllib.parse import urlparse
 
@@ -6,13 +8,18 @@ from bs4 import BeautifulSoup
 
 from .fetch import valider_url, charger_page
 from .extraction import extraire_metadonnees, extraire_structure, extraire_contenu
-from .graphs import construire_graphe_formel
+from .graphs import construire_graphe_complet
+from .textgraph import phrases_meta, phrases_contenu, construire_graphe_mots
 
 
 def analyser_site(url):
     """
-    Charge une page et extrait les 3 couches.
-    Retourne un dict avec toutes les données et les 3 graphes formels (networkx.DiGraph).
+    Charge une page et extrait les 3 couches (pour les tableaux d'affichage).
+    Retourne un dict avec :
+      - le graphe complet et non segmenté de toutes les balises (niveau 1,
+        ``G_complet``, ``networkx.DiGraph``) ;
+      - les graphes de mots des couches Méta et Contenu (niveau 2,
+        ``G_meta_mots``/``G_contenu_mots``, ``networkx.Graph``).
     """
     url = valider_url(url)
     print(f"\n  ⏳  Chargement : {url}")
@@ -21,21 +28,21 @@ def analyser_site(url):
     print(f"  ✓  {len(html):,} car.")
     domaine = urlparse(url).netloc or url
 
-    meta_list, noeuds_meta = extraire_metadonnees(soup)
-    struct_list, noeuds_struct = extraire_structure(soup)
-    contenu_list, noeuds_contenu = extraire_contenu(soup, url)
+    meta_list, _ = extraire_metadonnees(soup)
+    struct_list, _ = extraire_structure(soup)
+    contenu_list, _ = extraire_contenu(soup, url)
 
-    G_meta = construire_graphe_formel(noeuds_meta)
-    G_struct = construire_graphe_formel(noeuds_struct)
-    G_contenu = construire_graphe_formel(noeuds_contenu)
+    G_complet = construire_graphe_complet(soup)
+    print(f"  Graphe complet : {G_complet.number_of_nodes()} nœuds   {G_complet.number_of_edges()} arcs")
 
-    print(f"  Couche méta    : {len(noeuds_meta)} nœuds   {G_meta.number_of_edges()} arcs")
-    print(f"  Couche struct  : {len(noeuds_struct)} nœuds  {G_struct.number_of_edges()} arcs")
-    print(f"  Couche contenu : {len(noeuds_contenu)} nœuds {G_contenu.number_of_edges()} arcs")
+    G_meta_mots = construire_graphe_mots(phrases_meta(meta_list))
+    G_contenu_mots = construire_graphe_mots(phrases_contenu(contenu_list))
+    print(f"  Mots méta      : {G_meta_mots.number_of_nodes()} mots   {G_meta_mots.number_of_edges()} liens")
+    print(f"  Mots contenu   : {G_contenu_mots.number_of_nodes()} mots {G_contenu_mots.number_of_edges()} liens")
 
     return {
         "url": url, "domaine": domaine, "soup": soup,
-        "meta_list": meta_list, "noeuds_meta": noeuds_meta, "G_meta": G_meta,
-        "struct_list": struct_list, "noeuds_struct": noeuds_struct, "G_struct": G_struct,
-        "contenu_list": contenu_list, "noeuds_contenu": noeuds_contenu, "G_contenu": G_contenu,
+        "meta_list": meta_list, "struct_list": struct_list, "contenu_list": contenu_list,
+        "G_complet": G_complet,
+        "G_meta_mots": G_meta_mots, "G_contenu_mots": G_contenu_mots,
     }

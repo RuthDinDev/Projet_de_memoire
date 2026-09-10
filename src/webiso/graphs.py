@@ -1,9 +1,11 @@
-"""Construction du graphe formel G=(S,A) d'une couche, sous forme de ``networkx.DiGraph``.
+"""Construction du graphe complet de balises (Niveau 1), sous forme de
+``networkx.DiGraph``.
 
-Chaque nœud hiérarchique ``{"tag", "depth", ...}`` produit un sommet identifié par un
-UID unique (``div``, ``div_2``, ``div_3``, ...) et porte les attributs ``tag`` et
-``depth``. Un arc relie chaque nœud à son plus proche ancestor de profondeur inférieure
-encore ouvert (pile par profondeur), exactement comme dans l'algorithme original.
+Contrairement à une première version qui segmentait le Niveau 1 en 3 graphes
+(méta / structure / contenu), ce module construit **un seul graphe complet et
+non segmenté** par site : chaque balise du document (sans filtrage par couche
+ni par liste de balises) devient un sommet, et un arc relie chaque balise à son
+véritable parent DOM. C'est donc l'arbre HTML entier de la page, tel quel.
 """
 
 from collections import defaultdict
@@ -11,6 +13,8 @@ from collections import defaultdict
 import networkx as nx
 
 # Palettes de couleurs par couche sémantique (clé = tag HTML, valeur = couleur hex)
+# — conservées pour le Niveau 2 (webiso.textgraph.COULEUR_MOTS) et pour colorer
+# le graphe complet du Niveau 1 de façon cohérente avec les couches d'origine.
 PALETTES = {
     "meta": {"head": "#7F77DD", "title": "#AFA9EC", "meta": "#CECBF6",
               "link": "#B5ACF2", "script": "#9D94EE", "style": "#C8C2F4", "base": "#DDD9FC"},
@@ -27,33 +31,41 @@ PALETTES = {
                 "em": "#88AACC", "strong": "#4477AA", "span": "#AABBCC"},
 }
 
+# Palette unique pour le graphe complet : union des 3 palettes ci-dessus. Toute
+# balise absente (svg, iframe, input...) retombe sur COULEUR_DEFAUT (webiso.viz).
+PALETTE_COMPLETE = {**PALETTES["meta"], **PALETTES["struct"], **PALETTES["contenu"]}
 
-def construire_graphe_formel(noeuds):
-    """Construit G=(S,A) à partir d'une liste de nœuds hiérarchiques et retourne un
-    ``networkx.DiGraph`` : sommets = uid (tag rendu unique), attributs = tag/depth,
-    arcs = parent → enfant."""
+
+def construire_graphe_complet(soup):
+    """Construit un graphe orienté complet et non segmenté représentant tout
+    l'arbre DOM de la page : chaque balise est un sommet (uid rendu unique,
+    ex. ``div``, ``div_2``...), chaque arc relie une balise à son véritable
+    parent DOM. Aucun filtrage par couche ni par liste de balises."""
     G = nx.DiGraph()
     compteur = defaultdict(int)
-    pile = {}
 
-    for n in noeuds:
-        compteur[n["tag"]] += 1
-        c = compteur[n["tag"]]
-        uid = n["tag"] if c == 1 else f"{n['tag']}_{c}"
-        depth = n["depth"]
+    def uid_pour(tag_name):
+        compteur[tag_name] += 1
+        c = compteur[tag_name]
+        return tag_name if c == 1 else f"{tag_name}_{c}"
 
-        G.add_node(uid, tag=n["tag"], depth=depth)
-        if depth > 0 and (depth - 1) in pile:
-            G.add_edge(pile[depth - 1], uid)
-        pile[depth] = uid
-        for k in [k for k in pile if k > depth]:
-            del pile[k]
+    def parcourir(el, parent_uid, depth):
+        for enfant in getattr(el, "children", []):
+            nom = getattr(enfant, "name", None)
+            if nom is None:
+                continue  # texte ou commentaire : pas une balise
+            uid = uid_pour(nom)
+            G.add_node(uid, tag=nom, depth=depth)
+            if parent_uid is not None:
+                G.add_edge(parent_uid, uid)
+            parcourir(enfant, uid, depth + 1)
 
+    parcourir(soup, None, 0)
     return G
 
 
-def afficher_graphe_formel(G, label="G"):
-    print(f"\n  {label} = (S, A)")
+def afficher_graphe_complet(G, label="G"):
+    print(f"\n  {label} = (S, A)  —  graphe complet, non segmenté")
     print(f"  |S| = {G.number_of_nodes()} sommets   |A| = {G.number_of_edges()} arcs")
     print("  S :")
     for uid, data in G.nodes(data=True):

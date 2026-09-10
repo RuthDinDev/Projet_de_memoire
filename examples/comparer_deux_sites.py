@@ -3,25 +3,35 @@
 from webiso import (
     analyser_site,
     afficher_metadonnees, afficher_structure, afficher_contenu,
-    afficher_graphe_formel, PALETTES,
-    dessiner_graphe, sauver_graphe,
-    test_isomorphisme_complet,
+    afficher_graphe_complet, PALETTE_COMPLETE,
+    dessiner_graphe, dessiner_graphe_mots, sauver_graphe,
+    COULEUR_MOTS,
+    test_isomorphisme_structure, test_isomorphisme_contenu,
 )
 
-url1 = "https://arxiv.org/abs/2408.10954"
-url2 = "https://www.wikipedia.org/"
+url_vrai = "https://arxiv.org/abs/2408.10954"
+url_faux = "https://www.wikipedia.org/"
 
-site1 = analyser_site(url1)
-site2 = analyser_site(url2)
+vrai = analyser_site(url_vrai)
+faux = analyser_site(url_faux)
 
-afficher_metadonnees(site1["meta_list"])
-afficher_structure(site1["struct_list"])
-afficher_contenu(site1["contenu_list"])
+afficher_metadonnees(vrai["meta_list"])
+afficher_structure(vrai["struct_list"])
+afficher_contenu(vrai["contenu_list"])
 
-afficher_graphe_formel(site1["G_meta"], "G_meta1")
+# Niveau 1 — structure complète (un seul graphe non segmenté)
+afficher_graphe_complet(vrai["G_complet"], "G_complet_vrai")
 
-fig = dessiner_graphe(site1["G_struct"], PALETTES["struct"], f"Structure — {site1['domaine']}")
-sauver_graphe(fig, "structure_site1.png")
+fig = dessiner_graphe(vrai["G_complet"], PALETTE_COMPLETE, f"Structure complète — {vrai['domaine']}")
+sauver_graphe(fig, "structure_vrai.png")
 
-iso_global, resultats = test_isomorphisme_complet(site1, site2)
-print("Isomorphes ?", iso_global)
+iso_structure, mapping, rapport = test_isomorphisme_structure(vrai, faux)
+print("Structure isomorphe ?", iso_structure)
+
+# Niveau 2 — contenu des balises Méta et Contenu (graphes de mots)
+fig_mots = dessiner_graphe_mots(vrai["G_contenu_mots"], COULEUR_MOTS["contenu"],
+                                 f"Mots contenu — {vrai['domaine']}")
+sauver_graphe(fig_mots, "mots_contenu_vrai.png")
+
+iso_contenu, resultats_contenu = test_isomorphisme_contenu(vrai, faux)
+print("Contenu isomorphe ?", iso_contenu)
