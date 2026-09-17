@@ -121,6 +121,28 @@ préfixés par `webiso/` :
    Dans ce cas, `requirements.txt` doit alors contenir `-e ./webiso` (chemin
    relatif à la racine du dépôt) plutôt que `-e .`.
 
+### Version de Python
+
+`scipy` (dépendance de `networkx.spring_layout`, utilisée pour dessiner les
+graphes) ne dispose pas encore de wheels précompilées fiables pour les toutes
+dernières versions de Python. Si Streamlit Cloud choisit par défaut une version
+trop récente (ex. Python 3.14), l'installation de `scipy` peut échouer ou rester
+incomplète, provoquant un `ModuleNotFoundError` au moment du rendu d'un graphe —
+un échec qui peut ne pas apparaître sur un petit site (peu de sommets) mais se
+déclencher sur un site plus volumineux empruntant le même chemin de code.
+
+Deux garde-fous sont en place pour éviter ça :
+- `pyproject.toml` déclare `requires-python = ">=3.9,<3.13"`, qui exclut les
+  versions non testées ;
+- `runtime.txt` (à la racine du dépôt) fixe explicitement `python-3.12`, la
+  version utilisée pour tous les tests locaux de ce projet.
+
+Si Streamlit Cloud ignore malgré tout ces fichiers, la version de Python peut
+aussi se choisir manuellement dans les paramètres de l'application (**Manage
+app → Settings → General → Python version**) : sélectionner **3.12**, puis
+relancer un déploiement complet (**Reboot app**, ou supprimer puis recréer
+l'app si le problème persiste).
+
 ## Utilisation en ligne de commande
 
 ```bash
