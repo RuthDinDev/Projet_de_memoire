@@ -20,7 +20,7 @@ st.set_page_config(page_title="webiso — Isomorphisme structurel HTML", layout=
 
 st.title("webiso")
 st.caption(
-    "Comparaison structurelle d'un site VRAI (référence) et d'un site FAUX "
+    "Comparaison structurelle d'un site 1 (référence) et d'un site 2 "
     "(candidat), à deux niveaux : (1) la structure complète du DOM, "
     "(2) le contenu porté par les balises Méta et Contenu (mots et leurs "
     "co-occurrences)."
