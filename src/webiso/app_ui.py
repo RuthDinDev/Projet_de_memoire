@@ -27,8 +27,8 @@ st.caption(
 )
 
 col_url1, col_url2 = st.columns(2)
-url_vrai = col_url1.text_input("URL du site VRAI (référence)", "https://example.com")
-url_faux = col_url2.text_input("URL du site FAUX (candidat)", "https://example.org")
+url_vrai = col_url1.text_input("URL du site 1(référence)", "https://example.com")
+url_faux = col_url2.text_input("URL du site 2(candidat)", "https://example.org")
 
 if st.button("Comparer", type="primary"):
     try:
